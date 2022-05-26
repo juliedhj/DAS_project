@@ -87,6 +87,7 @@ trainSet(N)
 np.random.seed(0)
 
 # Quadratic Function
+#not needed?
 def quadratic_fn(x,Q,r):
 	if not np.isscalar(Q) or not np.isscalar(r):
 		print('Error')
@@ -98,7 +99,6 @@ def quadratic_fn(x,Q,r):
 
 
 
-# Generate Network Bynomial Graph
 # Generate Network Bynomial Graph
 I_N = np.identity(N, dtype=int)
 p_ER = 0.3
