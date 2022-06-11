@@ -89,11 +89,9 @@ np.random.seed(0)
 # Quadratic Function
 #not needed?
 def quadratic_fn(x,Q,r):
-	if not np.isscalar(Q) or not np.isscalar(r):
-		print('Error')
-		exit(0)
-
+	
 	fval = 0.5*x*Q*x+r*x
+	#call on the gradient() method here?
 	fgrad = Q*x+r
 	return fval, fgrad
 
@@ -172,11 +170,28 @@ FF_dg = np.zeros((MAXITERS))
 #GO
 s = 1e-2 # stepsize
 
-for t in range (MAXITERS-1):
+for t in range (MAXITERS-1): #iterate loop
+	totalcost = 0 #store variable
+
 	if (t % 50) == 0:
 		print("Iteration {:3d}".format(t), end="\n")
-	
-	for i in range (N):
+		
+	(subsets_x, subsets_y) = splitSet(n)
+	for i in range (N): #iterate over nodes
+
+		for k in (len(subsets_x)): #iterate over each image
+		#store image and label 
+			label = subsets_y[i][k]
+			image = subsets_x[i][k]
+
+		#forward pass 
+		#forwards av image
+
+		#BCE from slides@		
+		#totalcost += cost
+
+
+		#backward propogatiom
 		Ni = np.nonzero(Adj[i])[0]
 		
 		X[i,t+1] = W[i,i]*X[i,t] - s*Y[i,t]
@@ -199,12 +214,13 @@ for t in range (MAXITERS-1):
 		for j in Ni:
 			X_dg[i,t+1] += W[i,j]*X_dg[j,t]
 
+#for each node, update the weights 
 # Terminal iteration
-for i in range (N):
-	f_i, _ = quadratic_fn(X[i,-1],Q[i],R[i])
-	FF[-1] += f_i
-	f_i_dg, _ = quadratic_fn(X_dg[i,-1],Q[i],R[i])
-	FF_dg[-1] += f_i_dg
+	for i in range (N):
+		f_i, _ = quadratic_fn(X[i,-1],Q[i],R[i])
+		FF[-1] += f_i
+		f_i_dg, _ = quadratic_fn(X_dg[i,-1],Q[i],R[i])
+		FF_dg[-1] += f_i_dg
 
 
 ###############################################################################
