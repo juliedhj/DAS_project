@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 np.random.seed(0)
 
 ###############################################################################
-
+ 
 T = 3  # Layers
 d = 4  # Number of neurons in each layer. Same numbers for all the layers
 

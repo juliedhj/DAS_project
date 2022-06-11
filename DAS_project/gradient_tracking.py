@@ -109,7 +109,7 @@ for t in range (MAXITERS-1):
 
 		f_i, grad_fi = quadratic_fn(XX[i,t],Q[i],R[i])
 		_, grad_fi_p = quadratic_fn(XX[i,t+1],Q[i],R[i])
-		YY[i,t+1] = WW[i,i]*YY[i,t] +(grad_fi_p-grad_fi)
+		YY[i,t+1] = WW[i,i]*YY[i,t] +(grad_fi_p - grad_fi)
 		for jj in Ni:
 			YY[i,t+1] += WW[i,jj]*YY[jj,t]
 
