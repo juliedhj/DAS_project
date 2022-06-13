@@ -151,14 +151,14 @@ def backward_pass(xx,uu,llambdaT):
 
   return Delta_u
 
-I_NN = np.identity(N, dtype=int)
+I_N = np.identity(N, dtype=int)
 p_ER = 0.3
 while 1:
 	neigh = np.random.binomial(1, p_ER, (N,N))
 	neigh = np.logical_or(neigh,neigh.T)
-	neigh = np.multiply(neigh,np.logical_not(I_NN)).astype(int)
+	neigh = np.multiply(neigh,np.logical_not(I_N)).astype(int)
 
-	test = np.linalg.matrix_power((I_NN+neigh),N)
+	test = np.linalg.matrix_power((I_N+neigh),N)
 	
 	if np.all(test>0):
 		print("the graph is connected\n")
@@ -167,16 +167,39 @@ while 1:
 		print("the graph is NOT connected\n")
 		quit()
 
+W = np.zeros((N,N))
+
+for i in range(N):
+	N_i = np.nonzero(neigh[i])[0] # In-Neighbors of node i
+	deg_i = len(N_i)
+
+	for j in N_i:
+		N_j = np.nonzero(neigh[j])[0] # In-Neighbors of node j
+		# deg_jj = len(N_jj)
+		deg_j = N_j.shape[0]
+
+		W[i,j] = 1/(1+max( [deg_i,deg_j] ))
+		# WW[i,jj] = 1/(1+np.max(np.stack((deg_i,deg_jj)) ))
+
+W += I_N - np.diag(np.sum(W,axis=0))
+
 def gradient_tracking(neigh, delta_f):
     for j in neigh: 
-        part1 = a[i,j]*zz[j][t]
-        part2 = a[i,j]*delta_f[j,t]- delta_f[i,t]
-    zz[t+1] = part1 - stepsize*part2 
+        part0 = a[i,j]*zz[j]
+        part1 = a[i,j]*delta_f[j]- delta_f[i]
+    zz = part0 - stepsize*part1 
 
     for j in neigh: 
-        xx[t+1] = a[i,j]*xx[j,t] - stepsize*delta_f[i,t]
+        xx = a[i,j]*xx[j] - stepsize*delta_f[i]
     
+def binaryCrossEntropy(data, label):
+    #part0 = (1 - y_true) * np.log(1 - y_pred + 1e-7)
+    #part1 = y_true * np.log(y_pred + 1e-7)
+    part0 = label * np.log(data)
+    part1 = (1 - label) * np.log(1- data)
 
+    return part0 + part1
+    
 ###############################################################################
 # MAIN
 ###############################################################################
@@ -185,6 +208,9 @@ J = np.zeros(max_iters)                       # Cost
 
 # Initial Weights / Initial Input Trajectory
 uu = np.random.randn(T-1, d, d+1)
+zz = np.zeros(d)
+Delta_u = np.zeros((d,d+1))
+bce = np.zeros((d, d+1))
 
 # Want 1 neuron with weights in the output layer
 for j in range(1,d):
@@ -192,32 +218,42 @@ for j in range(1,d):
 
 # GO!
 for k in range(max_iters):
-  if k%10 == 0:
-    print("k: ", k)
-    print('Cost at k={:d} is {:.4f}'.format(k,J[k-1]))
-    for i in range(N): 
+    if k%10 == 0:
+      print("k: ", k)
+      print('Cost at k={:d} is {:.4f}'.format(k,J[k-1]))
+      for i in range(N): 
         # Initial State Trajectory
         print("i: ", i)
         xx = forward_pass(uu, images[i][0]) # T x d
-
         for img in range(100):
             print("image ", img)
             data_point = data_arrays[i][img]
             label_point = label_arrays[i][img]
             
             # Forward propagation
-            xx = forward_pass(uu,data_point)
-
+            xx_i = forward_pass(uu,data_point)
+            
+            #Binary cross entropy
+            #bce[i, img] = binaryCrossEntropy(data_point, label_point)
             # Backward propagation
             llambdaT = 2*( xx[-1,:] - label_point) # xT
-            Delta_u = backward_pass(xx,uu,llambdaT) # the gradient of the loss function 
+            Delta_u[i, img] = backward_pass(xx[i],uu[i],llambdaT) # the gradient of the loss function 
             
-            # Update the weights
-            uu = uu - stepsize*Delta_u # overwriting the old value
-            print("weights updated")
+        # Update the weights
+        # Want to find a common u for all agents, where u is calculated over the sum of the 
+        # optimized u (with gradient) for all agents i
+        #uu = uu - stepsize*Delta_u # overwriting the old value
+        uu[i] = W[i,i] * uu[i] + zz[i] - stepsize* np.sum(Delta_u[i], axis=0)
+        zz[i] = W[i,i] * zz[i] - stepsize * np.sum(Delta_u[i], axis=0) * (W[i,i] - 1)
 
+        for j in neigh: 
+          uu[i] += W[i,j] * uu[j]
+          zz[i] += W[i,j] * (zz[j] - stepsize * np.sum(Delta_u[j], axis=0))
+        print("weights updated")
+    #The loss function for classification problems with (0,1) classes - Binary Cross Entropy 
     # Store the Loss Value across Iterations
-    J[k] = (xx[-1,:] - label_point)@(xx[-1,:] - label_point) # it is the cost at k+1
+    J[k] = (xx[-1,:] - label_point)@(xx[-1,:] - label_point)
+    #J[k] = np.sum(bce[i]) # it is the cost at k+1
     # np.linalg.norm( xx[-1,:] - label_point )**2
 
 _,ax = plt.subplots()
