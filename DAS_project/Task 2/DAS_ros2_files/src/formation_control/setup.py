@@ -2,6 +2,7 @@ from setuptools import setup
 from glob import glob
 
 package_name = 'formation_control'
+scripts = ['agent_i']
 
 setup(
     name=package_name,
@@ -23,6 +24,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            '{1} = {0}.{1}:main'.format(package_name, script) for script in scripts
         ],
     },
 )
