@@ -8,7 +8,7 @@ def generate_launch_description():
     COMM_TIME = 5e-2 #Communication time period
     KP = 1
     KV = 1
-    
+    I_N = np.identity(N, dtype=int)
     n_x = 4 #dimension of x_i
 
     Adj = np.array([
@@ -41,7 +41,8 @@ def generate_launch_description():
                     'x_init': x_init_ii,
                     'neigh': N_ii,
                     'kp': KP,
-                    'kv' : KV
+                    'kv' : KV,
+                    'I_N': I_N
                 }],
                 output='screen',
                 prefix='xterm -title "agent_{}" -hold -e'.format(ii)

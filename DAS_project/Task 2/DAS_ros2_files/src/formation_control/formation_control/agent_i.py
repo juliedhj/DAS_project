@@ -5,10 +5,11 @@ import rclpy
 from rclpy.node import Node 
 from std_msgs.msg import Float32MultiArray as msg_float
 
-#The goal. How to define the goal?
+#The goal. Define the desired position in g_ij
 P_ = np.array([0, 0, 1, 0, 1, 1, 0, 1]) #Square with four nodes
 
-def formation_update(dt, x_i, neigh, data, kp, kv, I_N):
+#Take in agent_id, set the first two to leaders and the last two to followers
+def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
      
      # dt    = discretization step
      # x_i   = state pf agent i
@@ -17,21 +18,26 @@ def formation_update(dt, x_i, neigh, data, kp, kv, I_N):
      # kv  = coefficient for formation control law 
      # kv  = coefficient for formation control law 
      # I_N  = Identity matrix
-    
+    I_D = np.identity(2, dtype=int) #Two because dimension is 2. 2x2 nodes which is 4.
     xdot_i = np.zeros(x_i.shape)
     p_i = x_i[0:2]
-    v_i = x_i[2:4]
+    v_i = x_i[2:4] 
 
     for j in neigh:
         x_j = np.array(data[j].pop(0)[1:]) #Pop the first element, and take the rest. The first is just the time.
-        p_j = x_j[0:2]
-        v_j = x_j[2:4]
+        p_j = x_j[0:2] #to np array
+        v_j = x_j[2:4] # to np array
 
-        #Compute p
-        g_ij = (p_j - p_i)/len(p_j - p_i)
-        P = I_N - g_ij@g_ij.T
+        #Compute p, this is P_ for agent 0, must do it iterative
+        #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
+        g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
+        P = I_D - g_ij@g_ij.T
 
-        u_ij = P * (kp (p_i - p_j) + kv(v_i - v_j))
+        #For leaders, this u_ij must be zero
+        if agent_id == 0 or agent_id == 1: #The first two are leaders
+            u_ij = 0
+        else:
+            u_ij = P * (kp (p_i - p_j) + kv(v_i - v_j))
         xdot_i += -u_ij
     
     #Forward Euler
@@ -49,10 +55,12 @@ class Agent(Node):
 
         #Get parameters from launcher
         self.agent_id = self.get_parameter('agent_id').value
+        print("agent_id", self.agent_id)
         self.neigh = self.get_parameter('neigh').value
-        self.degree = len(self.neigh)
+        print("neigh", self.neigh)
 
-        x_i = self.get_parameter('x_init').value 
+        x_i = self.get_parameter('x_init').value
+        print(x_i, "x_i") #Prints None, x_i...
         self.n_x = len(x_i)
         self.x_i = np.array(x_i)
 
@@ -61,7 +69,6 @@ class Agent(Node):
         
         self.kp = self.get_parameter('kp').value
         self.kv = self.get_parameter('kv').value
-        self.I_N = self.get_parameter('I_N').value
 
         self.tt = 0
 
@@ -125,7 +132,7 @@ class Agent(Node):
             
             if sync:
                 DeltaT = self.communication_time/10
-                self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.kp, self.kv, self.I_N)
+                self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.kp, self.kv, self.agent_id)
 
                 # publish the updated message
                 msg.data = [float(self.tt)]
