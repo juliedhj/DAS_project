@@ -139,7 +139,9 @@ class Agent(Node):
 
             self.publisher_.publish(msg)
 
-            self.get_logger().info("Agent {:d} -- Iter = {:d} ")
+            string_for_logger = [round(i,4) for i in msg.data.tolist()[1:]]
+            self.get_logger().info("Iter = {}  Value = {}".format(int(msg.data[0]), string_for_logger))
+
             self.tt += 1
 
         else: #Have all messages at time t-1 arrived?
