@@ -9,6 +9,7 @@ from std_msgs.msg import Float32MultiArray as msg_float
 P_ = np.array([0, 0, 1, 0, 1, 1, 0, 1]) #Square with four nodes
 
 #Take in agent_id, set the first two to leaders and the last two to followers
+p_index = 0
 def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
      
      # dt    = discretization step
@@ -23,14 +24,25 @@ def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
     p_i = x_i[0:2]
     v_i = x_i[2:4] 
 
+    P_elements = P_.size
+
     for j in neigh:
         x_j = np.array(data[j].pop(0)[1:]) #Pop the first element, and take the rest. The first is just the time.
-        p_j = x_j[0:2] #to np array
-        v_j = x_j[2:4] # to np array
+        p_j = np.array(x_j[0:2]) #to np array
+        v_j = np.array(x_j[2:4]) #to np array
 
         #Compute p, this is P_ for agent 0, must do it iterative
         #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
-        g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
+        if P_elements == p_index: 
+            g_ij = (P_[0:2] - P_[p_index:p_index+2])/np.linalg.norm(P_[0:2] - P_[p_index:p_index+2])
+        else:
+            g_ij = (P_[p_index+2:p_index+4] - P_[p_index:p_index+2])/np.linalg.norm(P_[p_index+2:p_index+4] - P_[p_index:p_index+2])
+
+        #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
+        #g_ij = (P_[4:6] - P_[2:4])/np.linalg.norm(P_[2:4] - P_[0:2])
+        #g_ij = (P_[6:] - P_[4:6])/np.linalg.norm(P_[2:4] - P_[0:2])
+        #g_ij = (P_[0:2] - P_[6:])/np.linalg.norm(P_[2:4] - P_[0:2])
+        
         P = I_D - g_ij@g_ij.T
 
         #For leaders, this u_ij must be zero
@@ -40,6 +52,8 @@ def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
             u_ij = P * (kp (p_i - p_j) + kv(v_i - v_j))
         xdot_i += -u_ij
     
+    p_index += 2
+
     #Forward Euler
     x_i += dt*xdot_i
 
