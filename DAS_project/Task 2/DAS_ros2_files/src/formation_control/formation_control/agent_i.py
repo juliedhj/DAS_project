@@ -9,7 +9,6 @@ from std_msgs.msg import Float32MultiArray as msg_float
 P_ = np.array([0, 0, 1, 0, 1, 1, 0, 1]) #Square with four nodes
 
 #Take in agent_id, set the first two to leaders and the last two to followers
-p_index = 0
 def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
      
      # dt    = discretization step
@@ -21,10 +20,15 @@ def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
      # I_N  = Identity matrix
     I_D = np.identity(2, dtype=int) #Two because dimension is 2. 2x2 nodes which is 4.
     xdot_i = np.zeros(x_i.shape)
-    p_i = x_i[0:2]
-    v_i = x_i[2:4] 
+    p_i = np.array(x_i[0:2])
+    v_i = np.array(x_i[2:4]) 
 
     P_elements = P_.size
+
+    p_index = 0
+    
+    for i in range(agent_id):
+        p_index += 2
 
     for j in neigh:
         x_j = np.array(data[j].pop(0)[1:]) #Pop the first element, and take the rest. The first is just the time.
@@ -33,10 +37,11 @@ def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
 
         #Compute p, this is P_ for agent 0, must do it iterative
         #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
-        if P_elements == p_index: 
-            g_ij = (P_[0:2] - P_[p_index:p_index+2])/np.linalg.norm(P_[0:2] - P_[p_index:p_index+2])
+        
+        if P_elements - 2 == p_index: 
+            g_ij = np.array((P_[0:2] - P_[p_index:p_index+2])/np.linalg.norm(P_[0:2] - P_[p_index:p_index+2]))
         else:
-            g_ij = (P_[p_index+2:p_index+4] - P_[p_index:p_index+2])/np.linalg.norm(P_[p_index+2:p_index+4] - P_[p_index:p_index+2])
+            g_ij = np.array((P_[p_index+2:p_index+4] - P_[p_index:p_index+2])/np.linalg.norm(P_[p_index+2:p_index+4] - P_[p_index:p_index+2]))
 
         #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
         #g_ij = (P_[4:6] - P_[2:4])/np.linalg.norm(P_[2:4] - P_[0:2])
@@ -47,13 +52,14 @@ def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
 
         #For leaders, this u_ij must be zero
         if agent_id == 0 or agent_id == 1: #The first two are leaders
-            u_ij = 0
+            u_ij = np.array(0)
         else:
-            u_ij = P * (kp (p_i - p_j) + kv(v_i - v_j))
-        xdot_i += -u_ij
-    
-    p_index += 2
+            p_combined_v = np.array((kp*(p_i - p_j), kv*(v_i - v_j))) #Format [[p_x,p_y], [v_x,v_y]]
+            u_ij = np.concatenate(P@p_combined_v) #Format [xp_x,p_y,v_x,v_y]
 
+        xdot_i += - u_ij
+        print(xdot_i, agent_id)
+    
     #Forward Euler
     x_i += dt*xdot_i
 
@@ -79,7 +85,7 @@ class Agent(Node):
         self.x_i = np.array(x_i)
 
         self.max_iters = self.get_parameter('max_iters').value
-        self.communication_time = self.get_parameter('communication_time')
+        self.communication_time = self.get_parameter('communication_time').value
         
         self.kp = self.get_parameter('kp').value
         self.kv = self.get_parameter('kv').value
@@ -101,12 +107,13 @@ class Agent(Node):
 
 
         #Create the publisher
-        self.publisher = self.create_publisher(
+        self.publisher_ = self.create_publisher(
                     msg_float, #Sending format of message
                     '/topic_{}'.format(self.agent_id), #Same for sender and receiver
                     10 #Queue size, 10 messages
         )
 
+    
         self.timer = self.create_timer(
             self.communication_time, #Variable
             self.timer_callback

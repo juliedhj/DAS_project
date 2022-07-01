@@ -1,17 +1,19 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 import numpy as np
+import os
+from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     N = 4 #Number of agents
-    MAXITERS = 50 
+    MAXITERS = 200 
     COMM_TIME = 5e-2 #Communication time period
     KP = 1
     KV = 1
     
     n_x = 4 #dimension of x_i
 
-    Adj = np.array([
+    Adj = np.asarray([
         [0, 1, 0, 1],
         [1, 0, 1, 0], 
         [0, 1, 0, 1],
