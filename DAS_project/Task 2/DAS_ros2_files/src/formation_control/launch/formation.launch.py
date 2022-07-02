@@ -6,10 +6,11 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     N = 4 #Number of agents
-    MAXITERS = 200 
+    MAXITERS = 500 
     COMM_TIME = 5e-2 #Communication time period
     KP = 1
     KV = 1
+    leaders = 2
     
     n_x = 4 #dimension of x_i
 
@@ -22,7 +23,9 @@ def generate_launch_description():
 
     #x_i consists of pi_x, pi_y, vi_x, vi_y
     # definite initial positions
-    x_init = np.random.rand(n_x*N,1)
+    x_leader = np.array([0, 0, 0, 0, 1, 0, 0, 0]) #Velocity of leader is 0.
+    x_follower = np.random.rand(n_x*(N-leaders),1)
+    x_init = np.concatenate((x_leader, x_follower), axis=None)
 
     launch_description = [] #append here your nodes
 

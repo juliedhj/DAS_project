@@ -1,0 +1,18 @@
+[1.102s] Invoking command in '/home/juliedahlhjelle/DAS_ros2_files/build/formation_control': PYTHONPATH=/home/juliedahlhjelle/DAS_ros2_files/build/formation_control/prefix_override:/home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/juliedahlhjelle/DAS_ros2_files/build/formation_control/build --no-deps install_data
+[1.394s] running develop
+[1.562s] running egg_info
+[1.562s] writing formation_control.egg-info/PKG-INFO
+[1.563s] writing dependency_links to formation_control.egg-info/dependency_links.txt
+[1.565s] writing entry points to formation_control.egg-info/entry_points.txt
+[1.566s] writing requirements to formation_control.egg-info/requires.txt
+[1.567s] writing top-level names to formation_control.egg-info/top_level.txt
+[1.609s] reading manifest file 'formation_control.egg-info/SOURCES.txt'
+[1.610s] writing manifest file 'formation_control.egg-info/SOURCES.txt'
+[1.646s] running build_ext
+[1.647s] Creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages/formation-control.egg-link (link to .)
+[1.649s] Installing agent_i script to /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/formation_control
+[1.652s] 
+[1.653s] Installed /home/juliedahlhjelle/DAS_ros2_files/build/formation_control
+[1.653s] running install_data
+[1.654s] copying launch/formation.launch.py -> /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/formation_control
+[1.697s] Invoked command in '/home/juliedahlhjelle/DAS_ros2_files/build/formation_control' returned '0': PYTHONPATH=/home/juliedahlhjelle/DAS_ros2_files/build/formation_control/prefix_override:/home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/juliedahlhjelle/DAS_ros2_files/build/formation_control/build --no-deps install_data

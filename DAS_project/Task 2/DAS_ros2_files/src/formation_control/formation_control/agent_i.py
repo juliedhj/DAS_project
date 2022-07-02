@@ -43,25 +43,28 @@ def formation_update(dt, x_i, neigh, data, kp, kv, agent_id):
         else:
             g_ij = np.array((P_[p_index+2:p_index+4] - P_[p_index:p_index+2])/np.linalg.norm(P_[p_index+2:p_index+4] - P_[p_index:p_index+2]))
 
+        #if agent_id == 2:
         #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
         #g_ij = (P_[4:6] - P_[2:4])/np.linalg.norm(P_[2:4] - P_[0:2])
-        #g_ij = (P_[6:] - P_[4:6])/np.linalg.norm(P_[2:4] - P_[0:2])
-        #g_ij = (P_[0:2] - P_[6:])/np.linalg.norm(P_[2:4] - P_[0:2])
-        
-        P = I_D - g_ij@g_ij.T
+           # g_ij = (P_[6:] - P_[4:6])/np.linalg.norm(P_[2:4] - P_[0:2])
+        #if agent_id == 3:
+         #   g_ij = (P_[0:2] - P_[6:])/np.linalg.norm(P_[2:4] - P_[0:2])
+    
 
         #For leaders, this u_ij must be zero
         if agent_id == 0 or agent_id == 1: #The first two are leaders
             u_ij = np.array(0)
-        else:
-            p_combined_v = np.array((kp*(p_i - p_j), kv*(v_i - v_j))) #Format [[p_x,p_y], [v_x,v_y]]
-            u_ij = np.concatenate(P@p_combined_v) #Format [xp_x,p_y,v_x,v_y]
 
+        else:
+            P = I_D - g_ij@g_ij.T
+            p_combined_v = np.array((kp*(p_i - p_j), kv*(v_i - v_j))) #Format [[p_x,p_y], [v_x,v_y]]
+            u_ij = np.concatenate(P@p_combined_v) #Format [xp_x,p_y,v_x,v_y]. U is acceleration
+        
         xdot_i += - u_ij
-        print(xdot_i, agent_id)
-    
+
     #Forward Euler
     x_i += dt*xdot_i
+    print(x_i, agent_id)
 
     return x_i
 
