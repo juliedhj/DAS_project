@@ -2,7 +2,7 @@ from setuptools import setup
 from glob import glob
 
 package_name = 'formation_control'
-scripts = ['agent_i']
+scripts = ['agent_i', 'visualizer']
 
 setup(
     name=package_name,
@@ -13,6 +13,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name, glob('launch/*.launch.py')),
+        ('share/' + package_name, glob('resource/*.rviz'))
 
     ],
     install_requires=['setuptools'],

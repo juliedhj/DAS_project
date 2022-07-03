@@ -3,6 +3,7 @@ setup.cfg
 setup.py
 formation_control/__init__.py
 formation_control/agent_i.py
+formation_control/visualizer.py
 formation_control.egg-info/PKG-INFO
 formation_control.egg-info/SOURCES.txt
 formation_control.egg-info/dependency_links.txt

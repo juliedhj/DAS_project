@@ -9,7 +9,7 @@ from std_msgs.msg import Float32MultiArray as msg_float
 #P_ = np.array([0, 0, 1, 0, 1, 1, 0, 1]) #Square with four nodes
 
 #Take in agent_id, set the first two to leaders and the last two to followers
-def formation_update(dt, x_i, neigh, data, kp, kv, P_, agent_id):
+def formation_update(dt, x_i, neigh, data, kp, kv, P_, agent_id, type):
      
      # dt    = discretization step
      # x_i   = state pf agent i
@@ -20,66 +20,41 @@ def formation_update(dt, x_i, neigh, data, kp, kv, P_, agent_id):
      # I_D  = Identity matrix
 
     I_D = np.identity(2) #Two because dimension is 2. 2x2 nodes which is 4.
-    xdot_i = np.zeros(x_i.shape)
+    xdot_i = np.zeros(4) #X_i shape is 4. 
     P = np.zeros((2,2))
-    p_i = np.array(x_i[0:2]) #Position
-    v_i = np.array(x_i[2:4]) #Velocity
     u_ij = np.zeros(2) #Vector that contains the acceleration
-
     g_ij_vec = np.zeros(2)
     diff = np.zeros(2)
 
-    #P_elements = P_.size
-
-    #p_index = 0
-    
-    #for i in range(agent_id):
-    #    p_index += 2
-
+    p_i = np.array(x_i[0:2]) #Position
+    v_i = np.array(x_i[2:4]) #Velocity
 
     for j in neigh:
         x_j = np.array(data[j].pop(0)[1:]) #Pop the first element, and take the rest. The first is just the time.
         p_j = np.array(x_j[0:2]) #to np array
         v_j = np.array(x_j[2:4]) #to np array
 
-        g_ij_vec[0] = (P_[j, 0] - P_[agent_id, 0])
-        g_ij_vec[1] = (P_[j, 1] - P_[agent_id, 1])
-        g_ij = np.array([g_ij_vec]) / np.linalg.norm(g_ij_vec)
-        #g_ij = np.array([g_ij_vec]) / np.sqrt(g_ij_vec[0]**2 + g_ij_vec[1]**2)
-
-        #Compute p, this is P_ for agent 0, must do it iterative
-        #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
+        g_ij_vec[0] = P_[j,0] - P_[agent_id,0]
+        g_ij_vec[1] = P_[j,1] - P_[agent_id,1]
+        g_ij_norm = np.linalg.norm(g_ij_vec)
+        g_ij = np.array([g_ij_vec]) / g_ij_norm
+     
+        P = I_D - g_ij.T@g_ij #Left associate
+        diff = [kp*(p_i[0] - p_j[0]) + kv*(v_i[0]-v_j[0]), 
+                kp*(p_i[1] - p_j[1]) + kv*(v_i[1]-v_j[1])]
+        u_ij += -np.matmul(P,diff) #Format [xp_x,p_y,v_x,v_y]. U is acceleration
         
-        #if P_elements - 2 == p_index: 
-        #    g_ij = np.array((P_[0:2] - P_[p_index:p_index+2])/np.linalg.norm(P_[0:2] - P_[p_index:p_index+2]))
-        #else:
-        #    g_ij = np.array((P_[p_index+2:p_index+4] - P_[p_index:p_index+2])/np.linalg.norm(P_[p_index+2:p_index+4] - P_[p_index:p_index+2]))
-
-        #if agent_id == 2:
-        #g_ij = (P_[2:4] - P_[0:2])/np.linalg.norm(P_[2:4] - P_[0:2])
-        #g_ij = (P_[4:6] - P_[2:4])/np.linalg.norm(P_[2:4] - P_[0:2])
-           # g_ij = (P_[6:] - P_[4:6])/np.linalg.norm(P_[2:4] - P_[0:2])
-        #if agent_id == 3:
-         #   g_ij = (P_[0:2] - P_[6:])/np.linalg.norm(P_[2:4] - P_[0:2])
-    
-
-        #For leaders, this u_ij must be zero
-        if agent_id == 0 or agent_id == 1: #The first two are leaders
-            u_ij[0] = 0
-            u_ij[1] = 0
-
-        else:
-            P = I_D - g_ij@g_ij.T
-            #p_combined_v = np.array((kp*(p_i - p_j) + kv*(v_i - v_j))) #Format [[p_x,p_y], [v_x,v_y]]
-            diff = [kp*(p_i[0] - p_j[0]) + kv*(v_i[0]-v_j[0]), kp*(p_i[1]-p_j[1]) + kv*(v_i[1]-v_j[1])]
-            u_ij += - P@diff #Format [xp_x,p_y,v_x,v_y]. U is acceleration
-        
+    #For leaders, this u_ij must be zero
+    if type == 'leader': #The first two are leaders
+        u_ij[0] = 0
+        u_ij[1] = 0        
 
     #Forward Euler. The control law will be applied to the agent if it is a follower. 
     xdot_i[0] = p_i[0] + dt*v_i[0]
     xdot_i[1] = p_i[1] + dt*v_i[1]
     xdot_i[2] = v_i[0] + dt*u_ij[0]
     xdot_i[3] = v_i[1] + dt*u_ij[1]
+    
     print(xdot_i, agent_id)
 
     return xdot_i
@@ -107,7 +82,20 @@ class Agent(Node):
         self.kv = self.get_parameter('kv').value
 
         #Desired position for agents. A square.
-        self.P_ = np.array([[0,0], [0,1], [1,1], [0,1]])
+        #self.P_ = np.array([[0,0], [1,0], [1,1], [0,1]])
+        self.P_ = np.array([
+            [0,-1], 
+            [1,-1], 
+            [1,0], 
+            [0,1],
+            [-1,1], 
+            [-1,0] 
+            ])
+
+
+        self.type = self.get_parameter('type').value
+
+
 
         self.tt = 0
 
@@ -162,20 +150,19 @@ class Agent(Node):
             self.get_logger().info("Iter = {}  Value = {}".format(int(msg.data[0]), string_for_logger))
 
             self.tt += 1
+            print(self.tt)
 
         else: #Have all messages at time t-1 arrived?
              # Check if lists are nonempty
             all_received = all(self.received_data[j] for j in self.neigh) # check if all neighbors' have been received
-
             sync = False
             # Have all messages at time t-1 arrived?
             if all_received:
                 sync = all(self.tt-1 == self.received_data[j][0][0] for j in self.neigh) # True if all True
             
             if sync:
-                DeltaT = self.communication_time/10
-                self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.kp, self.kv, self.P_, self.agent_id)
-
+                DeltaT = 0.001
+                self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.kp, self.kv, self.P_, self.agent_id, self.type)
                 # publish the updated message
                 msg.data = [float(self.tt)]
                 [msg.data.append(float(element)) for element in self.x_i]
