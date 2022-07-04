@@ -54,8 +54,6 @@ def formation_update(dt, x_i, neigh, data, kp, kv, P_, agent_id, type):
     xdot_i[1] = p_i[1] + dt*v_i[1]
     xdot_i[2] = v_i[0] + dt*u_ij[0]
     xdot_i[3] = v_i[1] + dt*u_ij[1]
-    
-    print(xdot_i, agent_id)
 
     return xdot_i
 
@@ -83,13 +81,12 @@ class Agent(Node):
 
         #Desired position for agents. A square.
         #self.P_ = np.array([[0,0], [1,0], [1,1], [0,1]])
-        self.P_ = np.array([
-            [0,-1], 
-            [1,-1], 
+        self.P_ = np.array(
+            [
+            [0,0], 
             [1,0], 
-            [0,1],
-            [-1,1], 
-            [-1,0] 
+            [1,1], 
+            [0,1]
             ])
 
 
@@ -117,7 +114,7 @@ class Agent(Node):
         self.publisher_ = self.create_publisher(
                     msg_float, #Sending format of message
                     '/topic_{}'.format(self.agent_id), #Same for sender and receiver
-                    10 #Queue size, 10 messages
+                    50 #Queue size, 10 messages
         )
 
     
@@ -145,21 +142,23 @@ class Agent(Node):
             [msg.data.append(float(element)) for element in self.x_i]
 
             self.publisher_.publish(msg)
+            self.tt += 1
 
             string_for_logger = [round(i,4) for i in msg.data.tolist()[1:]]
             self.get_logger().info("Iter = {}  Value = {}".format(int(msg.data[0]), string_for_logger))
 
-            self.tt += 1
-            print(self.tt)
 
         else: #Have all messages at time t-1 arrived?
              # Check if lists are nonempty
             all_received = all(self.received_data[j] for j in self.neigh) # check if all neighbors' have been received
             sync = False
+            print("all_rec, ", all_received)
+
             # Have all messages at time t-1 arrived?
             if all_received:
                 sync = all(self.tt-1 == self.received_data[j][0][0] for j in self.neigh) # True if all True
-            
+                print("sync", sync)
+
             if sync:
                 DeltaT = 0.001
                 self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.kp, self.kv, self.P_, self.agent_id, self.type)
@@ -167,6 +166,9 @@ class Agent(Node):
                 msg.data = [float(self.tt)]
                 [msg.data.append(float(element)) for element in self.x_i]
                 self.publisher_.publish(msg)
+
+                string_for_logger = [round(i,4) for i in msg.data.tolist()[1:]]
+                print("Iter = {} \t Value = {}".format(int(msg.data[0]), string_for_logger))
 
                 # Stop the node if tt exceeds MAXITERS
                 if self.tt > self.max_iters:
