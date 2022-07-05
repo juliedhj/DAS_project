@@ -52,7 +52,7 @@ def generate_launch_description():
 
     # initialize launch description with rviz executable
     rviz_config_dir = get_package_share_directory('formation_control')
-    rviz_config_file = os.path.join(rviz_config_dir, 'rviz_config_das.rviz')
+    rviz_config_file = os.path.join(rviz_config_dir, 'rviz_config.rviz')
 
     launch_description.append(
         Node(
