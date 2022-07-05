@@ -5,17 +5,17 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    COMM_TIME = 5e-3 #Communication time period
-    MAXITERS = 30000 #64000 #Define iterations
+    COMM_TIME = 5e-2 #5e-2=0.05 #Communication time period
+    MAXITERS = 70000 #Define iterations
     n_x = 4 #Dimension of x_i
 
     #Constant gains
     KP = 1
     KV = 1
 
-    Formation = "square"
+    formation = "square"
 
-    if Formation == "square":
+    if formation == "square":
         #Formation: a square
         N = 4 #Number of agents
         leaders = 2 #Number of leaders
@@ -24,7 +24,8 @@ def generate_launch_description():
             [1,0], 
             [1,1], 
             [0,1]]
-    elif Formation == "hexagon":
+
+    if formation == "hexagon":
         N = 6
         leaders = 2
         desired_positions = [
@@ -33,13 +34,25 @@ def generate_launch_description():
             [1,0], 
             [0,1],
             [-1,1], 
-            [-1,0] ]
+            [-1,0]]
+
+    if formation == "smiley":
+        N = 7
+        leaders = 3
+        desired_positions = [
+                [1,1.5],
+                [1.5,1],
+                [2.5,0.75],
+                [3.5,1],
+                [4,1.5],
+                [2,2],
+                [3,2],
+            ]
 
     #Generate the  adjaceny matrix. Followers need to communicate with at least one leader
     Adj = np.ones((N,N), dtype=int)
     np.fill_diagonal(Adj, 0)
     Adj = np.asarray(Adj)
-    print(Adj)
 
     #Define inital values
     x_init = np.random.randint(2,4)*np.random.rand(n_x*N,1)
@@ -57,7 +70,7 @@ def generate_launch_description():
     launch_description.append(
         Node(
             package='rviz2', 
-            node_executable='rviz2', 
+            executable='rviz2', 
             arguments=['-d', rviz_config_file],
             # output='screen',
             # prefix='xterm -title "rviz2" -hold -e'
@@ -67,7 +80,6 @@ def generate_launch_description():
 
     for ii in range(N):
         N_ii = np.nonzero(Adj[:, ii])[0].tolist() #neigbors
-        print(N_ii, "neigbor", ii)
         ii_index = ii*n_x + np.arange(n_x) #Assign random x_i
         x_init_ii = x_init[ii_index].flatten().tolist()
         if ii < leaders:
@@ -85,6 +97,7 @@ def generate_launch_description():
 
         desired_positions = np.asarray(desired_positions)
         desired_positions.flatten().tolist()  
+
 
         launch_description.append(
             Node(
@@ -113,8 +126,8 @@ def generate_launch_description():
         launch_description.append(
             Node(
                 package='formation_control', 
-                node_namespace='agent_{}'.format(ii),
-                node_executable='visualizer', 
+                namespace='agent_{}'.format(ii),
+                executable='visualizer', 
                 parameters=[{
                                 'agent_id': ii,
                                 'communication_time': COMM_TIME,
