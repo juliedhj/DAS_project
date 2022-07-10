@@ -5,8 +5,8 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    COMM_TIME = 5e-3 #0.1 #5e-2=0.05 #Communication time period
-    MAXITERS = 30000 #Define iterations
+    COMM_TIME = 0.1 #0.1 #5e-2=0.05 #Communication time period #2 for six agents and 4 for 8 agents.
+    MAXITERS = 10000 #Define iterations
     n_x = 4 #Dimension of x_i
 
     #Constant gains
@@ -41,14 +41,14 @@ def generate_launch_description():
         N = 8
         leaders = 3
         desired_positions = [
-                [2,6],
-                [1,5],
-                [1.5,4],
-                [2.5,4.5],
-                [4.5,5],
-                [5,3.5],
-                [6,4.5],
-                [5.5,5.5]
+                [0,4],
+                [0,-4],
+                [3,3],
+                [4,0],
+                [3,-3],
+                [-3,-3],
+                [-4,0],
+                [-3,3]
             ]
 
 ############ TASK 2.4 #################################
@@ -87,18 +87,45 @@ def generate_launch_description():
                 [2,0],
                 [2,2]
             ]
-    if formation == "A_big":
-        N = 8
-        leaders = 3
+    elif formation == "C_big":
+        N = 6
+        leaders = 2
         desired_positions = [
-                [3,2],
-                [3,3.5],
-                [3,5],
-                [4,5],
-                [5,5],
-                [5,3.5],
-                [5,2],
-                [4,3.5]
+                [1,0], [0,1], [0,2], [1,3], [0.5, 0.5], [0.5, 2.5] 
+            ]
+    elif formation == "I_big":
+        N = 6
+        leaders = 2
+        desired_positions = [
+                [1.1,-1],
+                [1.2,0],
+                [1.1,1],
+                [1.2,2],
+                [1.1,-2],
+                [1.2,3]
+            ]
+
+    elif formation == "A_big":
+        N = 6
+        leaders = 2
+        desired_positions = [
+                [0,0],
+                [1,2],
+                [2,0],
+                [1,1],
+                [0.5,1],
+                [1.5,1]
+            ]
+    elif formation == "O_big":
+        N = 6
+        leaders = 2
+        desired_positions = [
+                [0.8,1.5],
+                [0.8,0.5],
+                [2.2,0.5],
+                [2.2,1.5],
+                [1.5, 2.5],
+                [1.5,-0.5]
             ]
 
     #Generate the  adjaceny matrix. Followers need to communicate with at least one leader
