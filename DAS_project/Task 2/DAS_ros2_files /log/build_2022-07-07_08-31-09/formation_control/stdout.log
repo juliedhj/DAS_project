@@ -1,0 +1,26 @@
+running develop
+running egg_info
+creating formation_control.egg-info
+writing formation_control.egg-info/PKG-INFO
+writing dependency_links to formation_control.egg-info/dependency_links.txt
+writing entry points to formation_control.egg-info/entry_points.txt
+writing requirements to formation_control.egg-info/requires.txt
+writing top-level names to formation_control.egg-info/top_level.txt
+writing manifest file 'formation_control.egg-info/SOURCES.txt'
+reading manifest file 'formation_control.egg-info/SOURCES.txt'
+writing manifest file 'formation_control.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages/site.py
+Creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages/formation-control.egg-link (link to .)
+Installing agent_i script to /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/formation_control
+Installing visualizer script to /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/formation_control
+
+Installed /home/juliedahlhjelle/DAS_ros2_files/build/formation_control
+running install_data
+creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/ament_index
+creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/ament_index/resource_index
+creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/ament_index/resource_index/packages
+copying resource/formation_control -> /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/ament_index/resource_index/packages
+copying package.xml -> /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/formation_control
+copying launch/formation.launch.py -> /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/formation_control
+copying resource/rviz_config.rviz -> /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/formation_control

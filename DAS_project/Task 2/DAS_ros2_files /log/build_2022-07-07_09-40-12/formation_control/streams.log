@@ -1,0 +1,19 @@
+[1.322s] Invoking command in '/home/juliedahlhjelle/DAS_ros2_files/build/formation_control': PYTHONPATH=/home/juliedahlhjelle/DAS_ros2_files/build/formation_control/prefix_override:/home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/juliedahlhjelle/DAS_ros2_files/build/formation_control/build --no-deps install_data
+[1.746s] running develop
+[1.966s] running egg_info
+[1.967s] writing formation_control.egg-info/PKG-INFO
+[1.967s] writing dependency_links to formation_control.egg-info/dependency_links.txt
+[1.968s] writing entry points to formation_control.egg-info/entry_points.txt
+[1.968s] writing requirements to formation_control.egg-info/requires.txt
+[1.968s] writing top-level names to formation_control.egg-info/top_level.txt
+[2.015s] reading manifest file 'formation_control.egg-info/SOURCES.txt'
+[2.017s] writing manifest file 'formation_control.egg-info/SOURCES.txt'
+[2.098s] running build_ext
+[2.099s] Creating /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages/formation-control.egg-link (link to .)
+[2.101s] Installing agent_i script to /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/formation_control
+[2.101s] Installing visualizer script to /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/formation_control
+[2.102s] 
+[2.102s] Installed /home/juliedahlhjelle/DAS_ros2_files/build/formation_control
+[2.102s] running install_data
+[2.102s] copying launch/formation.launch.py -> /home/juliedahlhjelle/DAS_ros2_files/install/formation_control/share/formation_control
+[2.183s] Invoked command in '/home/juliedahlhjelle/DAS_ros2_files/build/formation_control' returned '0': PYTHONPATH=/home/juliedahlhjelle/DAS_ros2_files/build/formation_control/prefix_override:/home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/juliedahlhjelle/DAS_ros2_files/build/formation_control/build --no-deps install_data

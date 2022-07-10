@@ -1,0 +1,7 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/juliedahlhjelle/DAS_ros2_files/build/formation_control",
+        "/home/juliedahlhjelle/DAS_ros2_files/install/formation_control/lib/python3.8/site-packages",
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ]
+}

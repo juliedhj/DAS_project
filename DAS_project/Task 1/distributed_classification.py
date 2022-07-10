@@ -1,22 +1,24 @@
 from keras.datasets import mnist
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Input
-import tensorflow as tf
 
 # Useful constants
 N = 10
-data = mnist.load_data()
+T = 3  # Layers
+d = 784  # Number of neurons in each layer. Same numbers for all the layers
+img_num = 25
+max_iters = 15 # epochs
+stepsize = 0.05 # learning rate
+TEST_FLAG = 1 #Flag to set for testing 
 
+data = mnist.load_data()
 #Split the dataset
 (X_train, y_train), (X_test, y_test) = data
 
 
 #Reshape the dataset to acces every pixel
-X_train = X_train.reshape((X_train.shape[0], 28*28)).astype('float32')
-X_test = X_test.reshape((X_test.shape[0], 28*28)).astype('float32')
+X_train = np.reshape(X_train, (-1, 28*28))
+X_test = np.reshape(X_test, (-1, 28*28))
 
 #Get value of every pixel as a number between 0 and 1
 X_train = X_train / 255
@@ -27,8 +29,11 @@ X_test = X_test / 255
 # Digit 4 -> Label 1
 # All other digits -> Label -1
 
+y_train = y_train.copy().astype(np.int8)
 y_train = [1 if y==4 else 0 for y in y_train]
-y_test = np.array([1 if y==4 else 0 for y in y_test], dtype='float32')
+y_test = y_test.copy().astype(np.int8)
+y_test = [1 if y==4 else 0 for y in y_test]
+
 
 #2 
 #Shuffle training set randomly
@@ -36,226 +41,253 @@ p = np.random.permutation(len(X_train))
 y_train = np.array(y_train, dtype='float32')[p.astype(int)]
 X_train = np.array(X_train, dtype='float32')[p.astype(int)]
 
-#Split training set in N subsets
+
+# #Split training set in N subsets
 def splitSet(n):
     subsets_X = np.array_split(X_train, n)
     subsets_y = np.array_split(y_train, n)
-    return subsets_X, subsets_y
+    return np.asarray(subsets_X), np.asarray(subsets_y)
 
 #3 
 #Distributed Gradient tracking 
-T = 3  # Layers
-d = 784  # Number of neurons in each layer. Same numbers for all the layers
 
 # Training Set
-(images, labels) = splitSet(N)
-data_arrays = images
-label_arrays = labels
-# Gradient Method Parameters
-max_iters = 10 # epochs
-stepsize = 0.1 # learning rate
+(data_arrays, label_arrays) = splitSet(N)
+print(data_arrays.shape)
 
 ###############################################################################
 # Activation Function
-def sigmoid_fn(xi):
-  return 1/(1+np.exp(-xi))
+def sigmoid(xi):
+    return 1 / (1 + np.exp(-xi))
 
 # Derivative of Activation Function
-def sigmoid_fn_derivative(xi):
-  return sigmoid_fn(xi)*(1-sigmoid_fn(xi))
+def sigmoid_derivative(xi):
+    return sigmoid(xi) * (1 - sigmoid(xi))
 
-# Inference: x_tp = f(xt,ut)
-def inference_dynamics(xt,ut):
-  """
-    input: 
-              xt current state
-              ut current input
-    output: 
-              xtp next state
-  """
-  xtp = np.zeros(d)
-  for ell in range(d):
-    temp = xt@ut[ell,1:] + ut[ell,0] # including the bias
+def forward_pass(uu, x0):
+    xx = np.zeros((T,d))
+    xx[0] = x0
+    # propagate the xx from 0 to T-1 by running the inference dynamics
+    for t in range(T - 2):
+        for el in range(d): #el = neurons in the layers
+            # update term
+            temp = (xx[t] @ uu[t, el, 1:]) + uu[t, el, 0]  
+            xx[t+1, el] = sigmoid(temp)  # x(t+1) = f(x(t)' * u_ell), f = sigmoid
 
-    xtp[ell] = sigmoid_fn( temp ) # x' * u_ell
-  
-  return xtp
-
-# Forward Propagation
-def forward_pass(uu,x0):
-  """
-    input: 
-              uu input trajectory: u[0],u[1],..., u[T-1]
-              x0 initial condition
-    output: 
-              xx state trajectory: x[1],x[2],..., x[T]
-  """
-  xx = np.zeros((T,d))
-  xx[0] = x0
-
-  for t in range(T-1):
-    xx[t+1] = inference_dynamics(xx[t],uu[t]) # x^+ = f(x,u)
-  return xx
+    # output layer: only one neuron is computed (the others output zero)
+    xx[T-1, 0] = sigmoid(xx[T-2] @ uu[T-2, 0, 1:] + uu[T-2, 0, 0])
+    # thresholded value
+    return xx
   
 # Adjoint dynamics: 
 #   state:    lambda_t = A.T lambda_tp
 #   output: deltau_t = B.T lambda_tp
-def adjoint_dynamics(ltp,xt,ut):
-  """
-    input: 
-              llambda_tp current costate
-              xt current state
-              ut current input
-    output: 
-              llambda_t next costate
-              delta_ut loss gradient wrt u_t
-  """
-  df_dx = np.zeros((d,d))
-
-  # df_du = np.zeros((d,(d+1)*d))
-  Delta_ut = np.zeros((d,d+1))
-
-  for j in range(d):
-    dsigma_j = sigmoid_fn_derivative(xt@ut[j,1:] + ut[j,0]) 
-
-    df_dx[:,j] = ut[j,1:]*dsigma_j
-    # df_du[j, XX] = dsigma_j*np.hstack([1,xt])
+def adjoint_dynamics(ltp, xt, ut):
     
-    # B'@ltp
-    Delta_ut[j,0] = ltp[j]*dsigma_j
-    Delta_ut[j,1:] = xt*ltp[j]*dsigma_j
-  
-  lt = df_dx@ltp # A'@ltp
-  # Delta_ut = df_du@ltp
+    df_dx = np.zeros((d, d))
+    # df_du = np.zeros((d,(d+1)*d))
+    delta_uut = np.zeros((d, d+1))
 
-  return lt, Delta_ut
+    for j in range(d):
+        dsigma_j = sigmoid_derivative((xt@ut[j, 1:]) + ut[j, 0])
+
+        df_dx[:, j]  = ut[j, 1:] * dsigma_j
+        # dfu[hh, xx] = dsigma_j*np.hstack([1,xxt])
+
+        # B'@ltp
+        delta_uut[j, 0]  = ltp[j] * dsigma_j
+        delta_uut[j, 1:] = xt * ltp[j] * dsigma_j
+
+    lt = df_dx@ltp  # A'@ltp
+
+    return lt, delta_uut
 
 # Backward Propagation
-def backward_pass(xx,uu,llambdaT):
-  """
-    input: 
-              xx state trajectory: x[1],x[2],..., x[T]
-              uu input trajectory: u[0],u[1],..., u[T-1]
-              llambdaT terminal condition
-    output: 
-              llambda costate trajectory
-              delta_u costate output, i.e., the loss gradient
-  """
-  llambda = np.zeros((T,d))
-  llambda[-1] = llambdaT
+def backward_pass(xx, uu, llambdaT):
+    
+    llambda = np.zeros((T, d))
+    llambda[-1,0] = llambdaT
+    Delta_u = np.zeros((T-1, d, d+1))
 
-  Delta_u = np.zeros((T-1,d,d+1))
+    # Compute the first value of the costate
+    dfx = np.zeros((d, d))
 
-  for t in reversed(range(T-1)): # T-2,T-1,...,1,0
-    llambda[t], Delta_u[t] = adjoint_dynamics(llambda[t+1],xx[t],uu[t])
+    dsigma_T = sigmoid_derivative((xx[T-2]@uu[T-2, 0, 1:]) + uu[T-2, 0, 0])
 
-  return Delta_u
+    dfx[:, 0]  = uu[T-2, 0, 1:] * dsigma_T
 
+    Delta_u[0, 0]  = llambdaT * dsigma_T
+    Delta_u[0, 1:] = xx[T-2, 0] * llambdaT * dsigma_T
+    llambda[T-2] = dfx @ llambda[-1]
+
+    for t in reversed(range(T - 2)): # T-2 ... 1 0
+        llambda[t], Delta_u[t] = adjoint_dynamics(llambda[t + 1], xx[t], uu[t])
+    return Delta_u
+
+def current_cost(y_pred, y_true):
+    cost_current = (y_true - y_pred)**2
+    return cost_current
+
+#Generate the network 
 I_N = np.identity(N, dtype=int)
 p_ER = 0.3
 while 1:
-	neigh = np.random.binomial(1, p_ER, (N,N))
-	neigh = np.logical_or(neigh,neigh.T)
-	neigh = np.multiply(neigh,np.logical_not(I_N)).astype(int)
+    neigh = np.random.binomial(1, p_ER, (N,N))
+    neigh = np.logical_or(neigh,neigh.T)
+    neigh = np.multiply(neigh,np.logical_not(I_N)).astype(int)
 
-	test = np.linalg.matrix_power((I_N+neigh),N)
-	
-	if np.all(test>0):
-		print("the graph is connected\n")
-		break 
-	else:
-		print("the graph is NOT connected\n")
-		quit()
+    test = np.linalg.matrix_power((I_N+neigh),N)
+    
+    if np.all(test>0):
+        print("the graph is connected\n")
+        break 
+    else:
+        print("the graph is NOT connected\n")
+        quit()
 
+#Compute the mixing matrices
 W = np.zeros((N,N))
 
 for i in range(N):
-	N_i = np.nonzero(neigh[i])[0] # In-Neighbors of node i
-	deg_i = len(N_i)
+    N_i = np.nonzero(neigh[i])[0] # In-Neighbors of node i
+    deg_i = len(N_i)
 
-	for j in N_i:
-		N_j = np.nonzero(neigh[j])[0] # In-Neighbors of node j
-		# deg_jj = len(N_jj)
-		deg_j = N_j.shape[0]
+    for j in N_i:
+        N_j = np.nonzero(neigh[j])[0] # In-Neighbors of node j
+        # deg_jj = len(N_jj)
+        deg_j = N_j.shape[0]
 
-		W[i,j] = 1/(1+max( [deg_i,deg_j] ))
-		# WW[i,jj] = 1/(1+np.max(np.stack((deg_i,deg_jj)) ))
+        W[i,j] = 1 / (1 + max([deg_i,deg_j]))
+        # WW[i,jj] = 1/(1+np.max(np.stack((deg_i,deg_jj)) ))
 
 W += I_N - np.diag(np.sum(W,axis=0))
 
-def gradient_tracking(neigh, delta_f):
-    for j in neigh: 
-        part0 = a[i,j]*zz[j]
-        part1 = a[i,j]*delta_f[j]- delta_f[i]
-    zz = part0 - stepsize*part1 
-
-    for j in neigh: 
-        xx = a[i,j]*xx[j] - stepsize*delta_f[i]
-    
-def binaryCrossEntropy(data, label):
-    #part0 = (1 - y_true) * np.log(1 - y_pred + 1e-7)
-    #part1 = y_true * np.log(y_pred + 1e-7)
-    part0 = label * np.log(data)
-    part1 = (1 - label) * np.log(1- data)
-
-    return part0 + part1
     
 ###############################################################################
 # MAIN
 ###############################################################################
 
-J = np.zeros(max_iters)                       # Cost
+J = np.zeros((N, max_iters))                       # Cost
 
 # Initial Weights / Initial Input Trajectory
-uu = np.random.randn(T-1, d, d+1)
-zz = np.zeros(d)
-Delta_u = np.zeros((d,d+1))
-bce = np.zeros((d, d+1))
+uu = (1/d)*np.random.randn(N, T-1, d, d+1)
+zz = np.zeros((N, T-1, d, d+1))
+xx = np.zeros((N, T, d))
+Delta_u = np.zeros((N, img_num, T-1, d, d+1))
 
 # Want 1 neuron with weights in the output layer
-for j in range(1,d):
-    uu[-1,j] = 0
+# for j in range(1,d):
+#     uu[-1,j] = 0
 
 # GO!
-for k in range(max_iters):
-    if k%10 == 0:
-      print("k: ", k)
-      print('Cost at k={:d} is {:.4f}'.format(k,J[k-1]))
-      for i in range(N): 
+for k in range(max_iters - 1):
+      #print('Cost at k={:d} is {:.4f}'.format(k,J[k-1]))
+    for i in range(N): 
         # Initial State Trajectory
         print("i: ", i)
-        xx = forward_pass(uu, images[i][0]) # T x d
-        for img in range(100):
-            print("image ", img)
-            data_point = data_arrays[i][img]
-            label_point = label_arrays[i][img]
+        neigh_i = np.nonzero(neigh[i])[0]
+      
+        for img in range(img_num):
+            data_point = data_arrays[ i, img]
+            label_point = label_arrays[i, img]
             
             # Forward propagation
-            xx_i = forward_pass(uu,data_point)
+            xx[i] = forward_pass(uu[i], data_point)
+      
+            xx_out = xx[i, T-1, 0]
             
-            #Binary cross entropy
-            #bce[i, img] = binaryCrossEntropy(data_point, label_point)
             # Backward propagation
-            llambdaT = 2*( xx[-1,:] - label_point) # xT
-            Delta_u[i, img] = backward_pass(xx[i],uu[i],llambdaT) # the gradient of the loss function 
-            
+            llambdaT = 2 * (xx[i, T-1, 0] - label_point)
+            Delta_u[i, img] = backward_pass(xx[i],uu[i],llambdaT) # the gradient of the loss function
+      
+            J[i, k] += current_cost(xx[i, T-1, 0], label_point)
+      
+        print(f"\r Current cost [{k + 1}][Agent {i + 1}] -> {J[i, k]:.2f}", end=' ')
         # Update the weights
         # Want to find a common u for all agents, where u is calculated over the sum of the 
         # optimized u (with gradient) for all agents i
         #uu = uu - stepsize*Delta_u # overwriting the old value
-        uu[i] = W[i,i] * uu[i] + zz[i] - stepsize* np.sum(Delta_u[i], axis=0)
-        zz[i] = W[i,i] * zz[i] - stepsize * np.sum(Delta_u[i], axis=0) * (W[i,i] - 1)
+        uu[i] = W[i, i] * uu[i] + zz[i] - stepsize * np.sum(Delta_u[i], axis=0)
+        zz[i] = W[i, i] * zz[i] - stepsize * np.sum(Delta_u[i], axis=0) * (W[i,i] - 1)
 
-        for j in neigh: 
-          uu[i] += W[i,j] * uu[j]
-          zz[i] += W[i,j] * (zz[j] - stepsize * np.sum(Delta_u[j], axis=0))
+        for j in neigh_i:
+            uu[i] += W[i,j] * uu[j]
+            zz[i] += W[i,j] * (zz[j] - stepsize * np.sum(Delta_u[j], axis=0))
         print("weights updated")
-    #The loss function for classification problems with (0,1) classes - Binary Cross Entropy 
-    # Store the Loss Value across Iterations
-    J[k] = (xx[-1,:] - label_point)@(xx[-1,:] - label_point)
-    #J[k] = np.sum(bce[i]) # it is the cost at k+1
-    # np.linalg.norm( xx[-1,:] - label_point )**2
+        #The loss function for classification problems with (0,1) classes - Binary Cross Entropy 
+        # Store the Loss Value across Iterations
+J[:, -1] = J[:, k]
 
-_,ax = plt.subplots()
-ax.plot(range(max_iters),J)
+VALUE = 1
+OTHER = 0
+#4 
+#Compute the accuracy of the solution
+tot_accuracy = np.zeros(N)
+value_accuracy = np.zeros(N)
+other_accuracy = np.zeros(N)
+count_value = 0 
+count_other = 0
+threshold = 0.5 
+N_test = int(np.floor(len(y_test)/100))
+
+if TEST_FLAG: 
+    for el in range(N_test):
+        if y_test[el] == VALUE:
+            count_value += 1
+        else: 
+            count_other += 1 
+    print(count_value, count_other)
+    
+    for i in range(N):
+        correct_value = 0
+        correct_other = 0 
+        for img in range(N_test):
+        #current agent's estimate of img
+            xx_img = forward_pass(uu[i], X_test[img])
+            if y_test[img] == VALUE: 
+                if xx_img[T-1, 0] >= threshold:
+                    correct_value += 1 
+            elif y_test[img] == OTHER:
+                if xx_img[T-1, 0] < threshold:
+                    correct_other += 1
+        print(correct_value, correct_other)
+
+        #Calculate the accuracies
+        value_accuracy[i] = correct_value / count_value
+        other_accuracy[i] = correct_other / count_other
+        tot_accuracy[i] = (correct_other + correct_value) / N_test
+
+    print(f"AGENT ACCURACY \n"
+          f"Number of test samples per agent: {N_test} \n" 
+          f"---- Correct '1' ---- Correct '0' ----- TOTAL ------")
+    for i in range(N):
+        print(f"Agent [{i+1}]: {value_accuracy[i]:.3f} - {other_accuracy[i]:.3f} - {tot_accuracy[i]:.3f}")
+
+#PLOT THE SIMULATIONS 
+# _,ax = plt.subplots()
+# ax.plot(range(max_iters),J)
+# plt.show()
+
+colors = {}
+for i in range(N):
+    colors[i] = np.random.rand(3)
+
+#Plot the evolution of the cost 
+plt.figure()
+for i in range(N):
+    plt.plot(np.arange(max_iters), J[i], color=colors[i])
+plt.xlabel(r"iterations $k$")
+plt.ylabel(r"$J_i^k$")
+plt.title("Evolution of the local cost functions")
+plt.grid()
 plt.show()
+
+#Plot the sum of the gradient 
+# plt.figure()
+# for i in range(N):
+#     plt.plot(np.arange(max_iters), np.sum(Delta_u[i]), color=colors[i])
+# plt.xlabel(r"iterations $k$")
+# plt.ylabel(r"Delta_u$i$")
+# plt.title("Sum of the gradients for each agent")
+# plt.grid()
+# plt.show()
