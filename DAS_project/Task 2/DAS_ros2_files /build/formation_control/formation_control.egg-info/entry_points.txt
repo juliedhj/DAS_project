@@ -1,4 +1,0 @@
-[console_scripts]
-agent_i = formation_control.agent_i:main
-visualizer = formation_control.visualizer:main
-
