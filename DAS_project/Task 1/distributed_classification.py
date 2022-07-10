@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Useful constants
-N = 10
+N = 10 #Agents
 T = 3  # Layers
 d = 784  # Number of neurons in each layer. Same numbers for all the layers
 img_num = 25

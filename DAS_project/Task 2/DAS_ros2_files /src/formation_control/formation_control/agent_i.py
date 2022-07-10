@@ -54,6 +54,15 @@ def formation_update(dt, x_i, neigh, data, kp, kv, P_, agent_id, type):
 
     return xdot_i
 
+
+def writer(file_name, string):
+    """
+      inner function for logging
+    """
+    file = open(file_name, "a") # "a" is for append
+    file.write(string)
+    file.close()
+
 class Agent(Node):
 
     #Constructur, private method
@@ -83,6 +92,11 @@ class Agent(Node):
         self.type = self.get_parameter('type').value
 
         self.tt = 0
+
+         # create logging file
+        self.file_name = "_csv_file/agent_{}.csv".format(self.agent_id)
+        file = open(self.file_name, "w+") # 'w+' needs to create file and open in writing mode if doesn't exist
+        file.close()
 
         #Initialize subscription dict
         self.subscription_list = {}
@@ -135,6 +149,13 @@ class Agent(Node):
             string_for_logger = [round(i,4) for i in msg.data.tolist()[1:]]
             self.get_logger().info("Iter = {}  Value = {}".format(int(msg.data[0]), string_for_logger))
 
+            # 2) save on file
+            data_for_csv = msg.data.tolist().copy()
+            data_for_csv = [str(round(element,4)) for element in data_for_csv[1:]]
+            data_for_csv = ','.join(data_for_csv)
+            writer(self.file_name,data_for_csv+'\n')
+
+
 
         else: #Have all messages at time t-1 arrived?
              # Check if lists are nonempty
@@ -148,10 +169,17 @@ class Agent(Node):
             if sync:
                 DeltaT = self.communication_time/10
                 self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.kp, self.kv, self.P_, self.agent_id, self.type)
+                
                 # publish the updated message
                 msg.data = [float(self.tt)]
                 [msg.data.append(float(element)) for element in self.x_i]
                 self.publisher_.publish(msg)
+
+                # save data on csv file
+                data_for_csv = msg.data.tolist().copy()
+                data_for_csv = [str(round(element,4)) for element in data_for_csv[1:]]
+                data_for_csv = ','.join(data_for_csv)
+                writer(self.file_name,data_for_csv+'\n')
 
                 string_for_logger = [round(i,4) for i in msg.data.tolist()[1:]]
                 print("Iter = {} \t Value = {}".format(int(msg.data[0]), string_for_logger))
