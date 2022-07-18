@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 N = 10
 T = 3  # Layers
 d = 784  # Number of neurons in each layer. Same numbers for all the layers
-img_num = 50
-max_iters = 30 # epochs
+img_num = 25
+max_iters = 15 # epochs
 stepsize = 0.2 # learning rate
 TEST_FLAG = 1 #Flag to set for testing 
 
@@ -175,6 +175,7 @@ zz = np.zeros((N, T-1, d, d+1))
 xx = np.zeros((N, T, d))
 Delta_u = np.zeros((N, img_num, T-1, d, d+1))
 sum_agent_weight = np.zeros((N,max_iters))
+gradient_evolution = np.zeros((N, max_iters, img_num, T-1, d, d+1))
 
 # Want 1 neuron with weights in the output layer
 # for j in range(1,d):
@@ -202,7 +203,8 @@ for k in range(max_iters - 1):
             Delta_u[i, img] = backward_pass(xx[i],uu[i],llambdaT) # the gradient of the loss function
       
             J[i, k] += current_cost(xx[i, T-1, 0], label_point)
-      
+
+        gradient_evolution[i, k] = Delta_u[i]
         print(f"\r Current cost [{k + 1}][Agent {i + 1}] -> {J[i, k]:.2f}", end=' ')
         # Update the weights
         # Want to find a common u for all agents, where u is calculated over the sum of the 
@@ -269,9 +271,9 @@ if TEST_FLAG:
 
     print(f"AGENT ACCURACY \n"
           f"Number of test samples per agent: {N_test} \n" 
-          f"---- Correct '1' ---- Correct '0' ----- TOTAL ------")
+          f"----- TOTAL ------")
     for i in range(N):
-        print(f"Agent [{i+1}]: {value_accuracy[i]:.3f} - {other_accuracy[i]:.3f} - {tot_accuracy[i]:.3f}")
+        print(f"Agent [{i+1}]: {tot_accuracy[i]:.3f}")
 
 #PLOT THE SIMULATIONS 
 # _,ax = plt.subplots()
@@ -288,16 +290,29 @@ for i in range(N):
     plt.plot(np.arange(max_iters), sum_cost, color=colors[i])
 plt.xlabel(r"iterations $k$")
 plt.ylabel(r"$J_i^k$")
+plt.yscale("log")
 plt.title("Evolution of the total cost functions")
 plt.grid()
 plt.show()
 
-#Plot the sum of the gradient 
-plt.figure()
-for i in range(N):
-    plt.plot(np.arange(max_iters), sum_agent_weight[i], color=colors[i])
-plt.xlabel(r"Iterations $k$")
-plt.ylabel(r"Weights for agents")
-plt.title("Sum of the gradients for each agent")
-plt.grid()
-plt.show()
+# #Plot the sum of the weights 
+# plt.figure()
+# for i in range(N):
+#     plt.plot(np.arange(max_iters-1), sum_agent_weight[i, 0:max_iters-1], color=colors[i])
+# plt.xlabel(r"Iterations $k$")
+# plt.ylabel(r"Weights for agents")
+# plt.yscale("log")
+# plt.title("Sum of the weights for each iteration for the agents")
+# plt.grid()
+# plt.show()
+
+# Plot the norm of the gradient 
+# plt.figure()
+# for i in range(N):
+#     plt.plot(np.arange(max_iters), np.linalg.norm(gradient_evolution[i]), color=colors[i])
+# plt.xlabel(r"Iterations $k$")
+# plt.ylabel(r"Norm of the gradients")
+# plt.yscale("log")
+# plt.title("Sum of the weights for each iteration for the agents")
+# plt.grid()
+# plt.show()
