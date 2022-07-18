@@ -3,11 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Useful constants
-N = 10
+N = 10 # Agents
 T = 3  # Layers
 d = 784  # Number of neurons in each layer. Same numbers for all the layers
-img_num = 25
-max_iters = 15 # epochs
+img_num = 25 #Images per agent
+max_iters = 22 # epochs
 stepsize = 0.2 # learning rate
 TEST_FLAG = 1 #Flag to set for testing 
 
@@ -128,6 +128,16 @@ def current_cost(y_pred, y_true):
     cost_current = (y_true - y_pred)**2
     return cost_current
 
+def BCE(y_pred, y_true):
+    J = np.mean(y_true * np.log(y_pred) + (1-y_true)*np.log(1-y_pred))
+    return -J
+
+def BinaryCrossEntropy(y_true, y_pred):
+    y_pred = np.clip(y_pred, 1e-7, 1 - 1e-7)
+    term_0 = (1-y_true) * np.log(1-y_pred + 1e-7)
+    term_1 = y_true * np.log(y_pred + 1e-7)
+    return -np.mean(term_0+term_1, axis=0)
+
 #Generate the network 
 I_N = np.identity(N, dtype=int)
 p_ER = 0.3
@@ -199,10 +209,11 @@ for k in range(max_iters - 1):
             xx_out = xx[i, T-1, 0]
             
             # Backward propagation
-            llambdaT = 2 * (xx[i, T-1, 0] - label_point)
+            llambdaT = 2 * (xx_out - label_point)
             Delta_u[i, img] = backward_pass(xx[i],uu[i],llambdaT) # the gradient of the loss function
       
-            J[i, k] += current_cost(xx[i, T-1, 0], label_point)
+            J[i, k]  += BCE(xx_out, label_point)
+            #J[i, k] += current_cost(xx_out, label_point)
 
         gradient_evolution[i, k] = Delta_u[i]
         print(f"\r Current cost [{k + 1}][Agent {i + 1}] -> {J[i, k]:.2f}", end=' ')
@@ -218,8 +229,8 @@ for k in range(max_iters - 1):
             zz[i] += W[i,j] * (zz[j] - stepsize * np.sum(Delta_u[j], axis=0))
 
         sum_agent_weight[i, k] = np.sum(uu[i])
-        print(sum_agent_weight)
-        print("weights updated")
+        #print(sum_agent_weight)
+        #print("weights updated")
         #The loss function for classification problems with (0,1) classes - Binary Cross Entropy 
         # Store the Loss Value across Iterations
 J[:, -1] = J[:, k]
@@ -288,10 +299,10 @@ for i in range(N):
 plt.figure()
 for i in range(N):
     plt.plot(np.arange(max_iters), sum_cost, color=colors[i])
-plt.xlabel(r"iterations $k$")
-plt.ylabel(r"$J_i^k$")
-plt.yscale("log")
-plt.title("Evolution of the total cost functions")
+plt.xlabel(r"Iteration $k$")
+plt.ylabel("Cost")
+plt.yscale('log')
+plt.title(r"Evolution of the cost function, 25 images per agent")
 plt.grid()
 plt.show()
 
